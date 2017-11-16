@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% load staticfiles %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        {% include "account/sub_nav.html" %}
+        <div class="span12">
+            {% include "admin/sub_nav.html" %}
+
+            Username: <br>
+
+            <input type="text" id="username" list="users" placeholder="Enter Username">
+            <datalist id="users"></datalist>
+
+            <br><br>
+
+            <select id="mid">
+                {% for mid in mid_count %}
+                <option id = "{{ mid.2 }}">
+                    MID : {{ mid.0 }} &emsp;&emsp;USER COUNT : {{mid.1}}
+                </option>
+                {% endfor %}
+            </select>
+            <br>
+            <button id="update-btn" class="btn btn-primary" onclick="updateMID()"> Update MID </button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        
+    function updateMID() {
+        $("#update-btn").prop('disabled',true);
+        var BASE_URL = window.location.origin + "/sbhs";
+        var username = $("#username").val().split(" ")[0];
+        var board_id = $("#mid").children(":selected").attr("id");
+
+        if(username == "")
+        {
+            alert("Username field must not be empty");
+            return;
+        }
+
+        var request = $.ajax({
+            url:BASE_URL + "/admin/updatemid",
+            method : "POST",
+            data : {
+                "username" : username,
+                "board_id" : board_id
+            }
+        });
+
+        request.done(function(data){
+            if(data.status_code == 200) {
+                alert(data.message);
+                $("#update-btn").prop('disabled',false);
+                sessionStorage.setItem("sbhsuser"+username, [username, board_id]);
+                $("#username").val("");
+                location.reload();
+            }
+            else {
+                alert(data.message);
+                $("#update-btn").prop('disabled',false);
+            }                
+        });
+    }
+
+    // for live search of usernames
+    if (sessionStorage.getItem("fetchedUsers") == null) {
+var BASE_URL = window.location.origin + "/sbhs";
+        var request = $.ajax({
+            url: BASE_URL + '/admin/getusers',
+            method: 'POST'
+        });
+
+        request.done(function(data){
+            if (data.status_code == 200) {
+                sessionStorage.setItem("fetchedUsers", true);
+                populateUsers(data.message);
+                appendUsers();
+            }
+            else {
+                console.log("Sorry. Unable to implement live search");
+            }
+        });
+    }
+
+    function populateUsers(data) {
+        for (user of data) {
+            sessionStorage.setItem("sbhsuser"+user[0], [user[0], user[1]]);
+        } 
+    }
+
+    function appendUsers() {   
+        if (sessionStorage.getItem("fetchedUsers")) {
+            var i, matchedUsers = [];
+            query = "sbhsuser";
+            for (i in sessionStorage) {
+              if (sessionStorage.hasOwnProperty(i)) {
+                if (i.match(query)) {
+                  value = sessionStorage.getItem(i);
+                  matchedUsers.push(value);
+                }
+              }
+            }
+            options = "";
+            for (matchedUser of matchedUsers) {
+                options += "<option>" + matchedUser.split(",")[0] + "  (" + matchedUser.split(",")[1] + ")" + "</option>";
+            }
+            if (options.length != 0) {
+                document.getElementById("users").innerHTML = options;
+            }    
+        }
+    }
+    appendUsers();
+    </script>
+</div>
+{% endblock %}

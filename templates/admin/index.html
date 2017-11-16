@@ -1,0 +1,182 @@
+{% extends "layout.html" %}
+{% load staticfiles %}
+{% block style_block %}
+    <style>
+        .default {
+            background-color: #999;
+        }
+        .default[href]:hover,
+        .default[href]:focus {
+            background-color: #808080;
+        }
+        .primary {
+            background-color: #428bca;
+        }
+        .primary[href]:hover,
+        .primary[href]:focus {
+            background-color: #3071a9;
+        }
+        .success {
+            background-color: #5cb85c;
+        }
+        .success[href]:hover,
+        .success[href]:focus {
+            background-color: #449d44;
+        }
+        .info {
+            background-color: #5bc0de;
+        }
+        .info[href]:hover,
+        .info[href]:focus {
+            background-color: #31b0d5;
+        }
+        .warning {
+            background-color: #f0ad4e;
+        }
+        .warning[href]:hover,
+        .warning[href]:focus {
+            background-color: #ec971f;
+        }
+        .danger {
+            background-color: #d9534f;
+        }
+        .danger[href]:hover,
+        .danger[href]:focus {
+            background-color: #c9302c;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        {% include "account/sub_nav.html" %}
+        <div class="span12">
+        {% include "admin/sub_nav.html" %}
+        <h4>MID allotment mode is {{ allotment_mode }}. <small>Change to <a href="{% url 'admin_toggle_allotment_mode' %}">{% if allotment_mode == 'Random' %}Workshop mode{% else %}Random mode{% endif %}</a></small></h4>
+        <h1>Board status</h1>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Board MID</th>
+                        <th>Status</th>
+                        <th>Power Status</th>
+                        <th>Webcam</th>
+                        <th>Temperature Profile</th>
+                        <th>Download Logs</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in boards %}
+                    <tr>
+                        <td class = "board_id">{{ b.mid }}</td>
+                        <td><span style="cursor: pointer;" class="label label-{% if not b.online %}important{% elif b.temp_offline %}warning{% else %}success{% endif %}">{% if not b.online %}Offline{% elif b.temp_offline %}Temp Offline{% else %}Online{% endif %}</span></td>
+                        <td><span style = "cursor: pointer;" class = "label {% if not b.power_status %}danger{% else %}success{% endif %}">{% if not b.power_status %}OFF{% else %}ON{% endif %}</span></td>                        
+                        <td><a href="{% url 'webcam_show_video_to_admin' b.mid %}" target="_blank">View image</a></td>
+                        <td><a href="{% url 'admin_profile' b.mid %}">View</a></td>
+                        <td><a href="{% url 'admin_logs' b.mid %}">Download</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(".label-success").click(toggleState);
+    $(".label-warning").click(toggleState);
+    $(".success").click(togglePowerState);
+    $(".danger").click(togglePowerState);
+    function toggleState() {
+        console.log('inside toggleState')
+        var BASE_URL = window.location.origin + "";
+        if (window.confirm("Are you sure you want to toggle the state?")) {
+
+            var element = $(this);
+            console.log('element '+element)
+            var board_class = element.attr("class");
+            console.log('board_class '+board_class);
+            var selected_mid = element.parent().prev().html();
+            console.log('selected_mid '+selected_mid)
+            var request = $.ajax({
+                url : BASE_URL + '/admin/toggledevice',
+                method : 'POST',
+                data : {
+                    'mid' : selected_mid
+                }
+            });
+
+            request.done(function(data){
+                
+                if (data.status_code == 200) {
+                    if (board_class.indexOf("label-success") > -1) {
+                        element.removeClass("label-success");
+                        element.addClass("label-warning");
+                        element.html("Temp Offline");
+                    }
+                    else {
+                        element.removeClass("label-warning");
+                        element.addClass("label-success");
+                        element.html("Online");
+                    }
+                }
+                else {
+                    alert("Sorry! The state could not be toggled. "+data.message);
+                }
+            });
+        }
+    }
+    function togglePowerState(){
+        console.log('togglePowerState!');
+        var BASE_URL = window.location.origin + "";
+        if (window.confirm("Are you sure you want to toggle the state?")) {
+
+            var element = $(this);
+            console.log('element '+element)
+            var board_class = element.attr("class");
+            console.log('board_class '+board_class);
+            // var selected_mid = element.parent().prev().html();
+            var selected_mid = element.parent().siblings('td.board_id').html()
+            console.log('selected_mid '+selected_mid)
+            var request = $.ajax({
+                url : BASE_URL + '/admin/togglePowerState',
+                method : 'POST',
+                data : {
+                    'mid' : selected_mid
+                }
+            });
+
+            request.done(function(data){
+                if (data.status_code == 200) {
+                    if (board_class.indexOf("success") > -1) {
+                        element.removeClass("success");
+                        element.addClass("danger");
+                        element.html("OFF");
+                        
+                    }
+                    else {
+                        element.removeClass("danger");
+                        element.addClass("success");
+                        element.html("ON");
+                    }
+                }
+                else {
+                    alert("Sorry! The state could not be toggled. "+data.message);
+                }
+            });
+        }
+    }
+    //$(window).bind("beforeunload",function(event){
+    //    return "Please don't refresh. This will change the state of off devices to disconnected."
+    //});
+    
+    // This function does not allow to refresh the admin page. Refreshing admin Page will change the state of device
+    //function disableF5(e){
+    //    if ((e.which || e.keyCode) == 116 || (e.which || e.keyCode) == 82) e. preventDefault();
+    //};
+    //$(document).ready(function(){
+     //   $(document).on("keydown",disableF5);
+    //});
+</script>
+{% endblock %}

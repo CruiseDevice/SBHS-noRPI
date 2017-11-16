@@ -1,0 +1,262 @@
+{% extends "layout.html" %}
+{% load staticfiles %}
+
+{% block content %}
+<style type="text/css">
+    .highlight {
+        background-color: lightblue;
+    }
+    #test-device, #monitor-logs {
+        position: fixed;
+        right: 10%;
+        border: 1px slategray solid;
+        padding: 15px;
+        display: none;
+    }
+    #log-data > span {
+        word-spacing: 5em;
+        margin-left: 3em; 
+    }
+</style>
+<div class="container">
+    <div class="row">
+        {% include "account/sub_nav.html" %}
+        <div style="margin-left: 30px">
+            {% include "admin/sub_nav.html" %}
+            <h1>Board status</h1>
+        </div>
+        <div class="span7">
+            <table class="table table-bordered" id="tableId">
+                <thead>
+                    <tr>
+                        <th>Board MID</th>
+                        <th>Status</th>
+                        <th>Occupied</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in boards %}
+                    <tr style="cursor : pointer;" title="Test/Monitor board">
+                        <td>{{ b.mid }}</td>
+                        <td><span class="label label-{% if b.online %}success{% else %}important{% endif %}">{% if b.online %}Online{% else %}Offline{% endif %}</span></td>
+                        <td><span class="label label-{% if b.mid in mids %}important{% else %}success{% endif %}">{% if b.mid in mids %}Ongoing{% else %}Vacant{% endif %}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal code starts here -->
+        
+        <div class="modal hide fade" id="test-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-header">
+                <h3>Test board</h3>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <input type="text" id="temp" disabled="true"><br/>
+                    <button class="btn btn-primary" onclick="getTemp()">Get Temperature</button>
+                </div>
+                <br><br>
+
+                <div>
+                    Heater Input: <input type="number" size="3" min="0" max="250" id="heater-val"><br/>
+                    Fan Input:<input type="number" size="3" min="0" max="250" id="fan-val" style="margin-left: 20px"><br/>
+                    <button class="btn btn-primary" onclick="setParams()">Set Parameters</button>
+                    <br><br>
+                </div>
+                <br><br>
+
+                <div>
+                    <button class="btn btn-primary" onclick="resetParams()">Reset Parameters</button>
+                </div>           
+            </div>
+            <div class="modal-footer">
+                <a data-dismiss="modal" aria-hidden="true" class="btn">Close</a>
+            </div>
+        </div>
+
+        <div class="modal hide fade" id="monitor-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-header">
+                <h3>Monitor experiment</h3>
+            </div>
+            <div class="modal-body">
+                <strong><p id="username"></p></strong>
+                <p id="log-data" style="word-spacing: 4em"></p>
+                <button class="btn btn-primary" onclick="getLogs()">Refresh Logs</button>
+            </div>
+            <div class="modal-footer">
+                <a data-dismiss="modal" aria-hidden="true" class="btn">Close</a>
+            </div>
+        </div>
+        <!-- Modal code ends here -->
+        
+    </div>
+</div>
+<script>
+    var BASE_URL = window.location.origin + "/sbhs";
+    $("#tableId").on("click", "tr", function(e) {
+        $("#tableId").find("tr.highlight").removeClass("highlight");
+        $(this).addClass("highlight");
+        
+        columns = e.currentTarget.getElementsByTagName("td");
+        isSelectedMachineVacant = columns[columns.length-1].childNodes[0].className.indexOf("label-success") > -1
+        
+        if (isSelectedMachineVacant) {
+            $("#temp").val("");
+            $("#fan-val").val("");
+            $("#heater-val").val("");
+            $("#test-modal").modal();
+        }
+        else {
+            $("#monitor-modal").modal();
+            getLogs();
+        }
+    });
+    
+    function resetParams() {
+        var selected_machine = document.getElementsByClassName("highlight");
+        if (selected_machine.length == 0) {
+            alert("Please select a machine first");
+            return;
+        }
+        var selected_mid = selected_machine[0].getElementsByTagName('td')[0].innerHTML;
+        
+        $(".btn").prop('disabled',true);
+        
+        var request = $.ajax({
+            url : BASE_URL + '/admin/resetdevice',
+            method : 'POST',
+            data : {
+                'mid' : selected_mid
+            }
+        });
+
+        request.done(function(data){
+            if (data.status_code == 200) {
+                document.getElementById("temp").value = data.message;
+                document.getElementById("fan-val").value = 100;
+                document.getElementById("heater-val").value = 0;
+            }
+            else {
+                alert(data.message);
+            }
+            $(".btn").prop('disabled',false);
+        });
+    }
+
+    function setParams() {
+        
+        var MAX_VALUE = 100;
+        var selected_machine = document.getElementsByClassName("highlight");
+        if (selected_machine.length == 0) {
+            alert("Please select a machine first");
+            return;
+        }
+        var selected_mid = selected_machine[0].getElementsByTagName('td')[0].innerHTML;
+        var fanValue = document.getElementById("fan-val").value;
+        var heaterValue = document.getElementById("heater-val").value;
+
+        var isInputOK = !isNaN(fanValue) && fanValue != "" && fanValue >=0 && fanValue <= MAX_VALUE && !isNaN(heaterValue) && heaterValue != "" && heaterValue >=0 && heaterValue <= MAX_VALUE;
+        if (!isInputOK) {
+            alert("Please enter a value between 0 and " + MAX_VALUE);
+            return;
+        }
+        $(".btn").prop('disabled',true);
+
+        var request = $.ajax({
+            url : BASE_URL + '/admin/setdevice',
+            method : 'POST',
+            data : {
+                'mid' : selected_mid,
+                'fan' : fanValue,
+                'heat' : heaterValue
+            }
+        });
+
+        request.done(function(data){
+            if (data.status_code == 200) {
+                document.getElementById("temp").value = data.message;
+            }
+            else {
+                alert(data.message);
+            }
+            $(".btn").prop('disabled',false);
+        });
+    }
+   
+    function getTemp() {
+        var selected_machine = document.getElementsByClassName("highlight");
+        if (selected_machine.length == 0) {
+            alert("Please select a machine first");
+            return;
+        }
+        var selected_mid = selected_machine[0].getElementsByTagName('td')[0].innerHTML;
+        
+        $(".btn").prop('disabled',true);
+
+        var request = $.ajax({
+            url : BASE_URL + '/admin/gettemp',
+            method : 'POST',
+            data : {
+                'mid' : selected_mid
+            }
+        });
+
+        request.done(function(data){
+            if (data.status_code == 200) {
+                document.getElementById("temp").value = data.message;
+            }
+            else {
+                alert(data.message);
+            }
+
+            $(".btn").prop('disabled',false);
+
+        });
+    }
+
+    function getLogs() {
+        var selected_machine = document.getElementsByClassName("highlight");
+        if (selected_machine.length == 0) {
+            alert("Please select a machine first");
+            return;
+        }
+        var selected_mid = selected_machine[0].getElementsByTagName('td')[0].innerHTML;
+
+        $(".btn").prop('disabled',true);
+
+        var request = $.ajax({
+            url : BASE_URL + '/admin/monitor',
+            method : 'POST',
+            data : {
+                'mid' : selected_mid
+            }
+        });
+
+        header = "<th>Time</th><th>Fan</th><th>Heat</th><th>Temp</th>"
+        request.done(function(data){
+            if (data.status_code == 200) {
+                console.log(data.message.logs.replace("/\n/g", "<br/>"));
+                document.getElementById("username").innerHTML = "User : " + data.message.user;
+                document.getElementById("log-data").innerHTML = "<pre>Iteration Heater Fan Temp</pre><span>" + data.message.logs.replace(new RegExp("\n","g"), "</span><br/><span>") + "</span>";
+            }
+            else {
+                console.log(data.message);
+                alert(data.message);
+            }
+            $(".btn").prop('disabled',false);
+
+        });
+    }
+
+    // update status of ongoing experiments
+    setInterval(function() {
+        var now = new Date();
+        if (now.getMinutes() == 56 || now.getMinutes() == 1) {
+            location.reload();
+        }
+    }, 60000);
+</script>
+
+{% endblock %}
