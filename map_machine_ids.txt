@@ -1,4 +1,1 @@
-12=/dev/ttyUSB1
-16=/dev/ttyUSB4
-9=/dev/ttyUSB2
 255=/dev/ttyUSB0

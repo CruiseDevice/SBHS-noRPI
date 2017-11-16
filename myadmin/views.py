@@ -243,7 +243,7 @@ def toggle_power_state(req):
         print ' brd.power_status ',int(brd.power_status)
         # sys.argv = mid
         # print 'sys.argv ',sys.argv
-        ser = serial.Serial('/dev/ttyUSB0')
+        ser = serial.Serial('/dev/ttyUSB1')
         # print switch_on.switchOn(sys.argv)
 
         if not brd.power_status:

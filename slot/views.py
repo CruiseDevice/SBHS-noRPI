@@ -45,7 +45,7 @@ def create(req):
     date_string = req.POST.get("date")
     date = datetime.date.today() if date_string == "CURRENT" else datetime.datetime.strptime(date_string, "%Y-%m-%d")
     all_slots = Slot.get_free_slots(req.user.board.mid) if date_string == "CURRENT" else Slot.get_free_slots_on(date, req.user.board.mid)
-    ser = serial.Serial('/dev/ttyUSB0')
+    ser = serial.Serial('/dev/ttyUSB1')
     if slot in all_slots:
         if date_string == "CURRENT":
             Booking.objects.create(slot=slot, account=req.user, booking_date=date)

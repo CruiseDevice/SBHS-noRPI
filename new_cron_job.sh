@@ -12,7 +12,7 @@ killall streamer
 rm production_static_files/img/webcam/*.jpeg
 source venv/bin/activate
 #source ./bin/activate
-python sbhs_server/switch_onn.py 
+python switch_onn.py 
 python sbhs_server/scan_machines.py
 #python offline_reconnect.py
 python create_db.py

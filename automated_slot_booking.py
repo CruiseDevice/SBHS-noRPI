@@ -5,10 +5,12 @@ import MySQLdb
 import datetime
 from time import gmtime, strftime
 
-db = MySQLdb.connect(host="",   	        ## your host, usually localhost ##
-                     user="",         		## your username ##
-                     passwd="", 		## your password ##
-                     db="")     		## name of the data base ##
+from sbhs_server.credentials as credentials
+
+db = MySQLdb.connect(host="credentials.DB_HOST",   	        ## your host, usually localhost ##
+                     user="credentials.DB_USER",         		## your username ##
+                     passwd="credentials.DB_PASS", 		## your password ##
+                     db="credentials.DB_NAME")     		## name of the data base ##
 
 ## print "Opened database successfully"
 

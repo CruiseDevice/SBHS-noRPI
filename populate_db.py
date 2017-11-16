@@ -11,12 +11,13 @@ import django
 django.setup()
 
 from sbhs_server.tables.models import Board
+from sbhs_server.credentials as credentials
 from django.contrib.auth.hashers import make_password
 
-db = MySQLdb.connect(host='',
-    user='',
-    passwd='',
-    db='')
+db = MySQLdb.connect(host='credentials.DB_HOST',
+    user='credentials.DB_USER',
+    passwd='credentials.DB_PASS',
+    db='credentials.DB_NAME')
 
 print db
 print 'database opened successfully'
@@ -62,7 +63,7 @@ def create_account(number_of_board_and_users):
         print 'email ',email
         username='suser'+str(i)
         print 'username ',username
-        password = 'suser'+str(i)+'4229'
+        password = 'suser'+str(i)+credentials.suserpasswd
         print 'password ',password
         pwd = make_password(password)
         print 'pwd ',pwd

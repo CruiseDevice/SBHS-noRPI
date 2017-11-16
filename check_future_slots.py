@@ -15,7 +15,7 @@ django.setup()
 
 from sbhs_server.tables.models import Booking, Account, Board
 
-ser = serial.Serial('/dev/ttyUSB0')
+ser = serial.Serial('/dev/ttyUSB1')
 
 def switch_on(b_id, booking_Date, nowhour,slot_id):
     if datetime.now().date() == booking_Date: #This must be booking date:
@@ -43,20 +43,20 @@ def switch_on(b_id, booking_Date, nowhour,slot_id):
         mid = str(mid).zfill(2)   
         print mid 
         # if tim_e == current_time:
-        time.sleep(1)
+        time.sleep(0.2)
         ser.write(b'F'+mid)
         print ser
-        board.power_status = not board.power_status
+        board.power_status = 1
         board.save()
          
 def switch_off(b_id):
-    print 'b_id in switch_off: ',b_id
+    # print 'b_id in switch_off: ',b_id
     board = Board.objects.get(id=b_id)
     mid = str(b_id).zfill(2)   
-    time.sleep(1)
+    time.sleep(0.2)
     ser.write(b'N'+mid)
-    print ser
-    board.power_status = not board.power_status
+    # print ser
+    board.power_status = 0
     board.save()
 
 def check_future_slots():
@@ -64,17 +64,17 @@ def check_future_slots():
     # b = Booking.objects.filter(booking_date=nowDate)
     # print b
     # print nowHour.hour
-    print nowHour.hour + 2
+    print 'nowHour.hour+2',nowHour.hour + 2
     if nowHour.minute > 55:
         nowhour = nowHour.hour + 2
     else:
         nowhour = nowHour.hour + 1
-    print nowhour
+    print 'nowhour ',nowhour
     # nowhour = str(nowHour)
     # nowHour = nowHour.now()+1
     get_slot_id = Booking.objects.filter(booking_date=nowDate,slot_id = nowhour).values('booking_date','slot_id','account_id') #this returns queryset
     # iterate over queryset to get slot_id and booking_date
-    print get_slot_id
+    print 'get_slot_id',get_slot_id
     b_id_array = []
     for slot in get_slot_id:
         print slot['slot_id']
@@ -83,27 +83,27 @@ def check_future_slots():
         slot_id = slot['slot_id']
         booking_Date = slot['booking_date'].date()
         id = slot['account_id']
-        # print slot_id
+        print slot_id
         print booking_Date
-        # print id
+        print id
         get_board_id = Account.objects.get(id=id)
-        # print get_board_id
+        print get_board_id
         b_id = get_board_id.board_id
-        # print b_id
+        print b_id
         b_id = str(b_id).zfill(2)
         b_id_array.append(int(b_id))
         print b_id_array
    
     for b_id in b_id_array:
-        # print 'type of',type(b_id)
+        print 'type of',type(b_id)
         switch_on(b_id,booking_Date,nowhour,slot_id)
     
     b_id_set = set(b_id_array)
     board_set = set(range(1,17))
     print 'board_set', board_set
     print 'intersection result:', board_set.difference(b_id_set)
-    # b_id_set_intersection = board_set.intersection(b_id_set)
-    # print b_id_set_intersection
+    b_id_set_intersection = board_set.intersection(b_id_set)
+    print b_id_set_intersection
     for b_id in board_set.difference(b_id_set):
         # print type(b_id)
         switch_off(b_id)
