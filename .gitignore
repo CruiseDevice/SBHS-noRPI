@@ -1,0 +1,15 @@
+*.pyc
+sbhs_server/*/*.pyc
+sbhs_server/credentials.py
+log/
+static/img/webcam/
+experiments/
+sbhs.sqlite3
+sbhs_server/tables/migrations
+date.txt
+new.csv
+mail_dump.txt
+mid_video_port_map.json
+production_static_files/img/webcam
+docs/
+venv/
